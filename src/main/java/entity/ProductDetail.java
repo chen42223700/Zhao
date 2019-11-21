@@ -33,7 +33,7 @@ public class ProductDetail implements Serializable {
     /**
      * 偏距
      */
-    private String Offset;
+    private String offset;
 
     /**
      * 中心孔直径
@@ -125,16 +125,6 @@ public class ProductDetail implements Serializable {
      */
     private int rowNum;
 
-    /**
-     * 当前页
-     */
-    private int currentPage;
-
-    /**
-     * 总页数
-     */
-    private int totalPage;
-
     public String getBase() {
         return base;
     }
@@ -176,11 +166,11 @@ public class ProductDetail implements Serializable {
     }
 
     public String getOffset() {
-        return Offset;
+        return offset;
     }
 
     public void setOffset(String offset) {
-        Offset = offset;
+        this.offset = offset;
     }
 
     public String getCentre() {
@@ -325,21 +315,5 @@ public class ProductDetail implements Serializable {
 
     public void setRowNum(int rowNum) {
         this.rowNum = rowNum;
-    }
-
-    public int getCurrentPage() {
-        return currentPage;
-    }
-
-    public void setCurrentPage(int currentPage) {
-        this.currentPage = currentPage;
-    }
-
-    public int getTotalPage() {
-        return totalPage;
-    }
-
-    public void setTotalPage(int totalPage) {
-        this.totalPage = totalPage;
     }
 }

@@ -10,9 +10,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
 import java.util.List;
 
 public class ZhaoJFrame {
@@ -21,7 +18,7 @@ public class ZhaoJFrame {
 
     public ZhaoJFrame(){
         JFrame jf = new JFrame("Excel解析");
-        jf.setSize(330, 250);
+        jf.setSize(330, 270);
         jf.setLocationRelativeTo(null);
         jf.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
@@ -39,42 +36,41 @@ public class ZhaoJFrame {
         JButton btnFile = new JButton("选择");
         // 设置按钮的宽高
         btnFile.setSize(20, 15);
-        btnFile.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser fc=new JFileChooser();
-                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);//只能选择目录
-                String path=null;
-                File f=null;
-                int flag = -1;
-                try{
-                    flag=fc.showOpenDialog(null);
+        //注册按钮事件
+        btnFile.addActionListener((actionEvent) -> {
+                    JFileChooser fc = new JFileChooser();
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);//只能选择目录
+                    int flag = -1;
+
+                    try {
+                        flag = fc.showOpenDialog(null);
+                    } catch (HeadlessException head) {
+                        System.out.println("Open File Dialog ERROR!");
+                    }
+                    if (flag == JFileChooser.APPROVE_OPTION) {
+                        //获得该文件
+                        textFile.setText(fc.getSelectedFile().getPath());
+                    }
                 }
-                catch(HeadlessException head){
-                    System.out.println("Open File Dialog ERROR!");
-                }
-                if(flag==JFileChooser.APPROVE_OPTION){
-                    //获得该文件
-                    path=fc.getSelectedFile().getPath();
-                    textFile.setText(path);
-                }
-            }
-        });
+        );
         panel.add(btnFile);
 
 
         //标签
         JLabel JLWidth=new JLabel("宽度:");
         panel.add(JLWidth);
-
         JTextField textWidth = new JTextField(24);
         panel.add(textWidth);
 
         JLabel JLDiameter=new JLabel("直径:");
         panel.add(JLDiameter);
-
         JTextField textDiameter = new JTextField(24);
         panel.add(textDiameter);
+
+        JLabel JLOffset=new JLabel("偏距:");
+        panel.add(JLOffset);
+        JTextField textOffset = new JTextField(24);
+        panel.add(textOffset);
 
         JLabel JLScrew=new JLabel("螺孔数:");
         panel.add(JLScrew);
@@ -98,12 +94,10 @@ public class ZhaoJFrame {
         // 设置按钮的宽高
         btnQuery.setSize(100, 20);
 
-        btnQuery.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
+        btnQuery.addActionListener((actionEvent) ->{
                 String width = textWidth.getText();
                 String diameter = textDiameter.getText();
+                String offset = textOffset.getText();
                 String screw = textScrew.getText();
                 String distribution = textDistribution.getText();
                 String centre = textCentre.getText();
@@ -112,22 +106,22 @@ public class ZhaoJFrame {
                 //如果全为空报错
                 if(StringUtils.isBlank(width)
                         && StringUtils.isBlank(diameter)
+                        && StringUtils.isBlank(offset)
                         && StringUtils.isBlank(screw)
                         && StringUtils.isBlank(distribution)
                         && StringUtils.isBlank(centre)){
-                    JOptionPane.showMessageDialog(jf,"至少输入一个条件","错误",0);
+                    JOptionPane.showMessageDialog(jf,"至少输入一个条件","错误",JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 ProductEntity entity;
                 try {
-                    entity = ZhaoExcelUtil.processExcelData(filePath, width, diameter, screw, distribution, centre, 1, PAGE_SIZE);
-
+                    entity = ZhaoExcelUtil.processExcelData(filePath, width, diameter, offset, screw, distribution, centre, 1, PAGE_SIZE);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(jf,ex.getMessage(),"错误",JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 //获取详细数据
-                List<ProductDetail> productDetails = productDetails = entity.getProductDetails();
+                List<ProductDetail> productDetails = entity.getProductDetails();
 
                 if (CollectionUtils.isEmpty(productDetails)){
                     JOptionPane.showMessageDialog(jf,"没有匹配数据","提示",JOptionPane.PLAIN_MESSAGE);
@@ -201,30 +195,24 @@ public class ZhaoJFrame {
                 JLPageNum.setBounds(890,50, 30, 30);
 
                 //上一页
-                btnLastPage.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
+                btnLastPage.addActionListener((actionBtnLastPage) -> {
                         int currentPage = Integer.parseInt(JLPageNum.getText().substring(0,JLPageNum.getText().indexOf("/")));
 
                         if (currentPage == 1){
                             JOptionPane.showMessageDialog(jfResult,"已经是第一页","错误",JOptionPane.ERROR_MESSAGE);
                             return;
                         }
-                        btnProcess(--currentPage, filePath, width, diameter, screw, distribution, centre, jfResult, table, JLPageNum);
-                    }
+                        btnProcess(--currentPage, filePath, width, diameter, offset, screw, distribution, centre, jfResult, table, JLPageNum);
                 });
                 //下一页
-                btnNextPage.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
+                btnNextPage.addActionListener((actionBtnNextPage) -> {
                         int currentPage = Integer.parseInt(JLPageNum.getText().substring(0,JLPageNum.getText().indexOf("/")));
                         int totalPage = Integer.parseInt(JLPageNum.getText().substring(JLPageNum.getText().indexOf("/") + 1));
                         if (currentPage == totalPage){
                             JOptionPane.showMessageDialog(jfResult,"已经是最后一页","错误",JOptionPane.ERROR_MESSAGE);
                             return;
                         }
-                        btnProcess(++currentPage, filePath, width, diameter, screw, distribution, centre, jfResult, table, JLPageNum);
-                    }
+                        btnProcess(++currentPage, filePath, width, diameter, offset, screw, distribution, centre, jfResult, table, JLPageNum);
                 });
 
                 panelBtn.add(btnLastPage);
@@ -237,9 +225,8 @@ public class ZhaoJFrame {
                 jfResult.setLocationRelativeTo(null);
                 jfResult.setVisible(true);
             }
+        );
 
-
-        });
         panel.add(btnQuery);
 
         // 显示窗口
@@ -249,21 +236,22 @@ public class ZhaoJFrame {
 
     /**
      *
-     * @param pageNum
-     * @param filePath
-     * @param width
-     * @param diameter
-     * @param screw
-     * @param distribution
-     * @param centre
-     * @param frame
-     * @param table
-     * @param JLPageNum
+     * @param pageNum 页码
+     * @param filePath 文件路径
+     * @param width 宽度
+     * @param diameter 直径
+     * @param screw 螺孔数
+     * @param distribution 分布圆
+     * @param centre 中心孔
+     * @param frame frame
+     * @param table table
+     * @param JLPageNum lable
      */
     private static void btnProcess(int pageNum,
                                    String filePath,
                                    String width,
                                    String diameter,
+                                   String offset,
                                    String screw,
                                    String distribution,
                                    String centre,
@@ -273,7 +261,7 @@ public class ZhaoJFrame {
 
         ProductEntity entity;
         try {
-            entity = ZhaoExcelUtil.processExcelData(filePath, width, diameter, screw, distribution, centre, pageNum, PAGE_SIZE);
+            entity = ZhaoExcelUtil.processExcelData(filePath, width, diameter, offset, screw, distribution, centre, pageNum, PAGE_SIZE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(frame,e.getMessage(),"错误",JOptionPane.ERROR_MESSAGE);
             frame.dispose();

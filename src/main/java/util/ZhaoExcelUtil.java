@@ -15,8 +15,6 @@ import java.util.List;
 
 public class ZhaoExcelUtil {
 
-    private static final String PATH = "C:\\Users\\link.chen\\Desktop\\车轮数据库.xlsx";
-
     /**
      *
      * @param path 文件路径
@@ -25,12 +23,13 @@ public class ZhaoExcelUtil {
      * @param screw 偏距
      * @param distribution 螺孔数
      * @param centre 中心孔直径
-     * @return
-     * @throws Exception
+     * @return 产品信息
+     * @throws Exception 解析Excel异常
      */
     public static ProductEntity processExcelData(String path,
                                                  String width,
                                                  String diameter,
+                                                 String offset,
                                                  String screw,
                                                  String distribution,
                                                  String centre,
@@ -38,6 +37,7 @@ public class ZhaoExcelUtil {
                                                  int pageSize) throws Exception{
         boolean widthCondition = StringUtils.isNotBlank(width);
         boolean diameterCondition = StringUtils.isNotBlank(diameter);
+        boolean offsetCondition = StringUtils.isNotBlank(offset);
         boolean screwCondition = StringUtils.isNotBlank(screw);
         boolean distributionCondition = StringUtils.isNotBlank(distribution);
         boolean centreCondition = StringUtils.isNotBlank(centre);
@@ -50,6 +50,12 @@ public class ZhaoExcelUtil {
         if (diameterCondition){
             diameterValue = Double.parseDouble(diameter);
         }
+
+        double offsetValue = -1;
+        if (offsetCondition){
+            offsetValue = Double.parseDouble(offset);
+        }
+
         double screwValue = -1;
         if (screwCondition){
             screwValue = Double.parseDouble(diameter);
@@ -83,14 +89,19 @@ public class ZhaoExcelUtil {
                 ProductDetail productDetail = new ProductDetail();
                 productDetail.setRowNum(row.getRowNum() + 1);
 
+                row.getPhysicalNumberOfCells();
+
                 //是否匹配
                 boolean flag = false;
+                for (int columnIndex = 0; columnIndex <= row.getLastCellNum(); columnIndex++) {
+                    Cell cell = row.getCell(columnIndex);
 
-                for (Cell cell : row) {
-                    //获取列下标
-                    int columnIndex = cell.getColumnIndex();
                     //获取单元内容
                     String cellStr = getValueFromCell(cell);
+                    if (row.getRowNum() == 74){
+                        System.out.println("7676767676767676");
+                        System.out.println(cellStr);
+                    }
 
                     //条件判断
                     //宽度
@@ -102,6 +113,13 @@ public class ZhaoExcelUtil {
 
                     //直径
                     if (columnIndex == 4 && diameterCondition && !cellStr.equals(String.valueOf(diameterValue))) {
+                        //不匹配
+                        flag = true;
+                        break;
+                    }
+
+                    //偏距
+                    if (columnIndex == 5 && offsetCondition && !cellStr.equals(String.valueOf(offsetValue))) {
                         //不匹配
                         flag = true;
                         break;
@@ -125,6 +143,11 @@ public class ZhaoExcelUtil {
                     if (columnIndex == 8 && distributionCondition && !cellStr.equals(String.valueOf(distributionValue))) {
                         flag = true;
                         break;
+                    }
+
+                    if (columnIndex == 5){
+                        System.out.println("------------------");
+                        System.out.println("1:" + cellStr);
                     }
 
                     switch (columnIndex) {
@@ -206,6 +229,8 @@ public class ZhaoExcelUtil {
                 if (flag){
                     continue ;
                 }
+//                System.out.println("----------------");
+                System.out.println("2:"+ productDetail.getOffset());
                 //总条数+1
                 total ++;
 
@@ -216,6 +241,7 @@ public class ZhaoExcelUtil {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
 
         ProductEntity entity = new ProductEntity();
@@ -226,6 +252,9 @@ public class ZhaoExcelUtil {
     }
 
     private static String getValueFromCell(Cell cell){
+        if (cell == null){
+            return "";
+        }
 
         switch (cell.getCellType()){
             case STRING: return cell.getStringCellValue();
