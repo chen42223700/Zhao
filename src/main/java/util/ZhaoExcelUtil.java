@@ -1,5 +1,6 @@
 package util;
 
+import entity.ProductDetail;
 import entity.ProductEntity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -27,14 +28,14 @@ public class ZhaoExcelUtil {
      * @return
      * @throws Exception
      */
-    public static List<ProductEntity> processExcelData(String path,
-                                                       String width,
-                                                       String diameter,
-                                                       String screw,
-                                                       String distribution,
-                                                       String centre,
-                                                       int pageNum,
-                                                       int pageSize) throws Exception{
+    public static ProductEntity processExcelData(String path,
+                                                 String width,
+                                                 String diameter,
+                                                 String screw,
+                                                 String distribution,
+                                                 String centre,
+                                                 int pageNum,
+                                                 int pageSize) throws Exception{
         boolean widthCondition = StringUtils.isNotBlank(width);
         boolean diameterCondition = StringUtils.isNotBlank(diameter);
         boolean screwCondition = StringUtils.isNotBlank(screw);
@@ -61,95 +62,167 @@ public class ZhaoExcelUtil {
         if (centreCondition){
             centreValue = Double.parseDouble(diameter);
         }
+        //总条数
+        int total = 0;
 
         //处理翻页
         int firstIndex = (pageNum - 1) * pageSize;
 
-        List<ProductEntity> data = new ArrayList<>();
+        List<ProductDetail> data = new ArrayList<>();
         try {
             FileInputStream file = new FileInputStream(path);
             Workbook workbook = new XSSFWorkbook(file);
 
             Sheet sheet = workbook.getSheetAt(1);
 
-            int index = 0;
             for (Row row : sheet) {
-                //当查询的数据 == pageSize，则直接返回
-                if (data.size() >= pageSize){
-                    break;
-                }
                 //第一行时不用解析
                 if (row.getRowNum() == 0) {
                     continue;
                 }
-                ProductEntity productEntity = new ProductEntity();
-                productEntity.setRowNum(row.getRowNum() + 1);
-                for (Cell cell : row) {
+                ProductDetail productDetail = new ProductDetail();
+                productDetail.setRowNum(row.getRowNum() + 1);
 
+                //是否匹配
+                boolean flag = false;
+
+                for (Cell cell : row) {
+                    //获取列下标
                     int columnIndex = cell.getColumnIndex();
-                    switch (columnIndex){
-                        case 0 : productEntity.setBase(getValueFromCell(cell));break;
-                        case 1 : productEntity.setProductName(getValueFromCell(cell));break;
-                        case 2 : productEntity.setComponentNum(getValueFromCell(cell));break;
-                        case 3 : productEntity.setWidth(getValueFromCell(cell));break;
-                        case 4 : productEntity.setDiameter(getValueFromCell(cell));break;
-                        case 5 : productEntity.setOffset(getValueFromCell(cell));break;
-                        case 6 : productEntity.setCentre(getValueFromCell(cell));break;
-                        case 7 : productEntity.setScrew(getValueFromCell(cell));break;
-                        case 8 : productEntity.setDistribution(getValueFromCell(cell));break;
-                        case 9 : productEntity.setSingleWheelLoad(getValueFromCell(cell));break;
-                        case 10 : productEntity.setRiMaterial(getValueFromCell(cell));break;
-                        case 11 : productEntity.setRimthickness(getValueFromCell(cell));break;
-                        case 12 : productEntity.setSpokeMaterial(getValueFromCell(cell));break;
-                        case 13 : productEntity.setSpokeThicknes(getValueFromCell(cell));break;
-                        case 14 : productEntity.setBendingFatigueTest(getValueFromCell(cell));break;
-                        case 15 : productEntity.setBendingTestResult(getValueFromCell(cell));break;
-                        case 16 : productEntity.setRadialFatigueTest(getValueFromCell(cell));break;
-                        case 17 : productEntity.setRadialTestResult(getValueFromCell(cell));break;
-                        case 18 : productEntity.setSpokeMold(getValueFromCell(cell));break;
-                        case 19 : productEntity.setRiMould(getValueFromCell(cell));break;
-                        case 20 : productEntity.setPressingMold(getValueFromCell(cell));break;
-                        case 21 : productEntity.setProductDigitalModel(getValueFromCell(cell));break;
-                        case 22 : productEntity.setProductdrawings(getValueFromCell(cell));break;
-                        default : break;
+                    //获取单元内容
+                    String cellStr = getValueFromCell(cell);
+
+                    //条件判断
+                    //宽度
+                    if (columnIndex == 3 && widthCondition && !cellStr.equals(String.valueOf(widthValue))) {
+                        //不匹配
+                        flag = true;
+                        break;
                     }
 
+                    //直径
+                    if (columnIndex == 4 && diameterCondition && !cellStr.equals(String.valueOf(diameterValue))) {
+                        //不匹配
+                        flag = true;
+                        break;
+                    }
+
+                    //中心孔直径
+                    if (columnIndex == 6 && centreCondition && !cellStr.equals(String.valueOf(centreValue))) {
+                        //不匹配
+                        flag = true;
+                        break;
+                    }
+
+                    //螺孔数
+                    if (columnIndex == 7 && screwCondition && !cellStr.equals(String.valueOf(screwValue))) {
+                        //不匹配
+                        flag = true;
+                        break;
+                    }
+
+                    //分布圆
+                    if (columnIndex == 8 && distributionCondition && !cellStr.equals(String.valueOf(distributionValue))) {
+                        flag = true;
+                        break;
+                    }
+
+                    switch (columnIndex) {
+                        case 0:
+                            productDetail.setBase(cellStr);
+                            break;
+                        case 1:
+                            productDetail.setProductName(cellStr);
+                            break;
+                        case 2:
+                            productDetail.setComponentNum(cellStr);
+                            break;
+                        case 3:
+                            productDetail.setWidth(cellStr);
+                            break;
+                        case 4:
+                            productDetail.setDiameter(cellStr);
+                            break;
+                        case 5:
+                            productDetail.setOffset(cellStr);
+                            break;
+                        case 6:
+                            productDetail.setCentre(cellStr);
+                            break;
+                        case 7:
+                            productDetail.setScrew(cellStr);
+                            break;
+                        case 8:
+                            productDetail.setDistribution(cellStr);
+                            break;
+                        case 9:
+                            productDetail.setSingleWheelLoad(cellStr);
+                            break;
+                        case 10:
+                            productDetail.setRiMaterial(cellStr);
+                            break;
+                        case 11:
+                            productDetail.setRimthickness(cellStr);
+                            break;
+                        case 12:
+                            productDetail.setSpokeMaterial(cellStr);
+                            break;
+                        case 13:
+                            productDetail.setSpokeThicknes(cellStr);
+                            break;
+                        case 14:
+                            productDetail.setBendingFatigueTest(cellStr);
+                            break;
+                        case 15:
+                            productDetail.setBendingTestResult(cellStr);
+                            break;
+                        case 16:
+                            productDetail.setRadialFatigueTest(cellStr);
+                            break;
+                        case 17:
+                            productDetail.setRadialTestResult(cellStr);
+                            break;
+                        case 18:
+                            productDetail.setSpokeMold(cellStr);
+                            break;
+                        case 19:
+                            productDetail.setRiMould(cellStr);
+                            break;
+                        case 20:
+                            productDetail.setPressingMold(cellStr);
+                            break;
+                        case 21:
+                            productDetail.setProductDigitalModel(cellStr);
+                            break;
+                        case 22:
+                            productDetail.setProductdrawings(cellStr);
+                            break;
+                        default:
+                            break;
+                    }
                 }
 
-                //宽度
-                if (widthCondition && !productEntity.getWidth().equals(String.valueOf(widthValue)) ){
-                    continue;
+                //如果不匹配，则跳过
+                if (flag){
+                    continue ;
                 }
-
-                //直径
-                if (diameterCondition && !productEntity.getDiameter().equals(String.valueOf(diameterValue))){
-                    continue;
-                }
-
-                //螺孔数
-                if (screwCondition && !productEntity.getScrew().equals(String.valueOf(screwValue))){
-                    continue;
-                }
-                //分布圆
-                if (distributionCondition && !productEntity.getDistribution().equals(String.valueOf(distributionValue))){
-                    continue;
-                }
-
-                //中心孔直径
-                if (centreCondition && !productEntity.getCentre().equals(String.valueOf(centreValue))){
-                    continue;
-                }
+                //总条数+1
+                total ++;
 
                 //当下标大于或等于初始行时开始放入返回list中
-                if (index >= firstIndex){
-                    data.add(productEntity);
+                if (total > firstIndex && data.size() < pageSize){
+                    data.add(productDetail);
                 }
-
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return data;
+
+        ProductEntity entity = new ProductEntity();
+        entity.setProductDetails(data);
+        entity.setPageNum(pageNum);
+        entity.setTotalPage(total % pageSize == 0 ? total / pageSize : total / pageSize + 1);
+        return entity;
     }
 
     private static String getValueFromCell(Cell cell){

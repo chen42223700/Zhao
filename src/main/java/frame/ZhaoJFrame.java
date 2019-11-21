@@ -1,19 +1,23 @@
 package frame;
 
+import entity.ProductDetail;
 import entity.ProductEntity;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import util.ZhaoExcelUtil;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ZhaoJFrame {
+
+    private static int PAGE_SIZE = 15;
 
     public ZhaoJFrame(){
         JFrame jf = new JFrame("Excel解析");
@@ -51,7 +55,6 @@ public class ZhaoJFrame {
                 }
                 if(flag==JFileChooser.APPROVE_OPTION){
                     //获得该文件
-//                    f=fc.getSelectedFile().getPath();
                     path=fc.getSelectedFile().getPath();
                     textFile.setText(path);
                 }
@@ -115,21 +118,124 @@ public class ZhaoJFrame {
                     JOptionPane.showMessageDialog(jf,"至少输入一个条件","错误",0);
                     return;
                 }
-                List<ProductEntity> data = new ArrayList<>();
+                ProductEntity entity;
                 try {
-                    data = ZhaoExcelUtil.processExcelData(filePath, width, diameter, screw, distribution, centre, 1, 15);
+                    entity = ZhaoExcelUtil.processExcelData(filePath, width, diameter, screw, distribution, centre, 1, PAGE_SIZE);
+
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(jf,ex.getMessage(),"错误",JOptionPane.ERROR_MESSAGE);
                     return;
                 }
+                //获取详细数据
+                List<ProductDetail> productDetails = productDetails = entity.getProductDetails();
 
-                if (CollectionUtils.isEmpty(data)){
+                if (CollectionUtils.isEmpty(productDetails)){
                     JOptionPane.showMessageDialog(jf,"没有匹配数据","提示",JOptionPane.PLAIN_MESSAGE);
                     return;
                 }
 
-//                JOptionPane.showMessageDialog(jf,data.size(),"提示",JOptionPane.PLAIN_MESSAGE);
-                new InnerTableFrame(data);
+                //展示结果
+                JFrame jfResult = new JFrame("匹配数据");
+                jfResult.setSize(1800, 400);
+                jfResult.setLocationRelativeTo(null);
+
+                // 创建内容面板，使用边界布局
+                JPanel jpResult = new JPanel(new BorderLayout());
+
+                // 表格头数据
+                String[] columnNames = {"行号", "生产基地", "产品名称", "零件号", "宽度",
+                        "直径", "偏距", "中心孔直径", "螺孔数", "分布圆",
+                        "单轮载荷", "轮辋材料", "轮辋厚度", "轮辐材料",
+                        "轮辐厚度", "弯曲疲劳试验", "弯曲试验结果", "径向疲劳试验", "径向试验结果",
+                        "轮辐模具", "轮辋模具", "压配模具", "产品数模", "产品图纸"};
+                Object[][] data = new Object[productDetails.size()][columnNames.length];
+                for(int i=0;i<productDetails.size();i++){
+                    data[i][0]=productDetails.get(i).getRowNum();
+                    data[i][1]=productDetails.get(i).getBase();
+                    data[i][2]=productDetails.get(i).getProductName();
+                    data[i][3]=productDetails.get(i).getComponentNum();
+                    data[i][4]=productDetails.get(i).getWidth();
+                    data[i][5]=productDetails.get(i).getDiameter();
+                    data[i][6]=productDetails.get(i).getOffset();
+                    data[i][7]=productDetails.get(i).getCentre();
+                    data[i][8]=productDetails.get(i).getScrew();
+                    data[i][9]=productDetails.get(i).getDistribution();
+                    data[i][10]=productDetails.get(i).getSingleWheelLoad();
+                    data[i][11]=productDetails.get(i).getRiMaterial();
+                    data[i][12]=productDetails.get(i).getRimthickness();
+                    data[i][13]=productDetails.get(i).getSpokeMaterial();
+                    data[i][14]=productDetails.get(i).getSpokeThicknes();
+                    data[i][15]=productDetails.get(i).getBendingFatigueTest();
+                    data[i][16]=productDetails.get(i).getBendingTestResult();
+                    data[i][17]=productDetails.get(i).getRadialFatigueTest();
+                    data[i][18]=productDetails.get(i).getRadialTestResult();
+                    data[i][19]=productDetails.get(i).getSpokeMold();
+                    data[i][20]=productDetails.get(i).getRiMould();
+                    data[i][21]=productDetails.get(i).getPressingMold();
+                    data[i][22]=productDetails.get(i).getProductDigitalModel();
+                    data[i][23]=productDetails.get(i).getProductdrawings();
+                }
+
+
+                // 创建一个表格，指定 所有行数据 和 表头
+                TableModel model = new DefaultTableModel(data, columnNames);
+                JTable table = new JTable(model);
+
+
+                // 把 表头 添加到容器顶部（使用普通的中间容器添加表格时，表头 和 内容 需要分开添加）
+                jpResult.add(table.getTableHeader(), BorderLayout.NORTH);
+                // 把 表格内容 添加到容器中心
+                jpResult.add(table, BorderLayout.CENTER);
+
+                // 创建按钮
+                JPanel panelBtn = new JPanel();
+                panelBtn.setLayout(null);
+                JButton btnLastPage = new JButton("上一页");
+                btnLastPage.setBounds(750,50, 80, 30);
+                JButton btnNextPage = new JButton("下一页");
+                btnNextPage.setBounds(950,50, 80, 30);
+                JLabel JLPagelabel=new JLabel("页码:");
+                JLPagelabel.setBounds(850,50, 30, 30);
+
+                JLabel JLPageNum=new JLabel(entity.getPageNum() + "/" + entity.getTotalPage());
+                JLPageNum.setBounds(890,50, 30, 30);
+
+                //上一页
+                btnLastPage.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        int currentPage = Integer.parseInt(JLPageNum.getText().substring(0,JLPageNum.getText().indexOf("/")));
+
+                        if (currentPage == 1){
+                            JOptionPane.showMessageDialog(jfResult,"已经是第一页","错误",JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        btnProcess(--currentPage, filePath, width, diameter, screw, distribution, centre, jfResult, table, JLPageNum);
+                    }
+                });
+                //下一页
+                btnNextPage.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        int currentPage = Integer.parseInt(JLPageNum.getText().substring(0,JLPageNum.getText().indexOf("/")));
+                        int totalPage = Integer.parseInt(JLPageNum.getText().substring(JLPageNum.getText().indexOf("/") + 1));
+                        if (currentPage == totalPage){
+                            JOptionPane.showMessageDialog(jfResult,"已经是最后一页","错误",JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                        btnProcess(++currentPage, filePath, width, diameter, screw, distribution, centre, jfResult, table, JLPageNum);
+                    }
+                });
+
+                panelBtn.add(btnLastPage);
+                panelBtn.add(btnNextPage);
+                panelBtn.add(JLPagelabel);
+                panelBtn.add(JLPageNum);
+
+                jfResult.add(jpResult, BorderLayout.NORTH);
+                jfResult.add(panelBtn);
+                jfResult.setLocationRelativeTo(null);
+                jfResult.setVisible(true);
             }
 
 
@@ -141,76 +247,72 @@ public class ZhaoJFrame {
         jf.setVisible(true);
     }
 
-    class InnerTableFrame{
-        public InnerTableFrame(List<ProductEntity> productEntities) {
-            JFrame jf = new JFrame("匹配数据");
-            jf.setSize(1800, 400);
-            jf.setLocationRelativeTo(null);
+    /**
+     *
+     * @param pageNum
+     * @param filePath
+     * @param width
+     * @param diameter
+     * @param screw
+     * @param distribution
+     * @param centre
+     * @param frame
+     * @param table
+     * @param JLPageNum
+     */
+    private static void btnProcess(int pageNum,
+                                   String filePath,
+                                   String width,
+                                   String diameter,
+                                   String screw,
+                                   String distribution,
+                                   String centre,
+                                   JFrame frame,
+                                   JTable table,
+                                   JLabel JLPageNum){
 
-            // 创建内容面板，使用边界布局
-            JPanel panel = new JPanel(new BorderLayout());
-
-            // 表格头数据
-            String[] columnNames = {"行号", "生产基地", "产品名称", "零件号", "宽度",
-                    "直径", "偏距", "中心孔直径", "螺孔数", "分布圆",
-                    "单轮载荷", "轮辋材料", "轮辋厚度", "轮辐材料",
-                    "轮辐厚度", "弯曲疲劳试验", "弯曲试验结果", "径向疲劳试验", "径向试验结果",
-                    "轮辐模具", "轮辋模具", "压配模具", "产品数模", "产品图纸"};
-            Object[][] data = new Object[productEntities.size()][columnNames.length];
-            for(int i=0;i<productEntities.size();i++){
-                data[i][0]=productEntities.get(i).getRowNum();
-                data[i][1]=productEntities.get(i).getBase();
-                data[i][2]=productEntities.get(i).getProductName();
-                data[i][3]=productEntities.get(i).getComponentNum();
-                data[i][4]=productEntities.get(i).getWidth();
-                data[i][5]=productEntities.get(i).getDiameter();
-                data[i][6]=productEntities.get(i).getOffset();
-                data[i][7]=productEntities.get(i).getCentre();
-                data[i][8]=productEntities.get(i).getScrew();
-                data[i][9]=productEntities.get(i).getDistribution();
-                data[i][10]=productEntities.get(i).getSingleWheelLoad();
-                data[i][11]=productEntities.get(i).getRiMaterial();
-                data[i][12]=productEntities.get(i).getRimthickness();
-                data[i][13]=productEntities.get(i).getSpokeMaterial();
-                data[i][14]=productEntities.get(i).getSpokeThicknes();
-                data[i][15]=productEntities.get(i).getBendingFatigueTest();
-                data[i][16]=productEntities.get(i).getBendingTestResult();
-                data[i][17]=productEntities.get(i).getRadialFatigueTest();
-                data[i][18]=productEntities.get(i).getRadialTestResult();
-                data[i][19]=productEntities.get(i).getSpokeMold();
-                data[i][20]=productEntities.get(i).getRiMould();
-                data[i][21]=productEntities.get(i).getPressingMold();
-                data[i][22]=productEntities.get(i).getProductDigitalModel();
-                data[i][23]=productEntities.get(i).getProductdrawings();
-            }
-
-            // 创建一个表格，指定 所有行数据 和 表头
-            JTable table = new JTable(data, columnNames);
-
-            // 把 表头 添加到容器顶部（使用普通的中间容器添加表格时，表头 和 内容 需要分开添加）
-            panel.add(table.getTableHeader(), BorderLayout.NORTH);
-            // 把 表格内容 添加到容器中心
-            panel.add(table, BorderLayout.CENTER);
-
-            // 创建按钮
-            JPanel panelBtn = new JPanel();
-            panelBtn.setLayout(null);
-            JButton btnLastPage = new JButton("上一页");
-            btnLastPage.setBounds(750,50, 80, 30);
-            JButton btnNextPage = new JButton("下一页");
-            btnNextPage.setBounds(950,50, 80, 30);
-            JLabel JLPageNum=new JLabel("页码:");
-
-            panelBtn.add(btnLastPage);
-            panelBtn.add(btnNextPage);
-
-            jf.add(panel, BorderLayout.NORTH);
-            jf.add(panelBtn);
-//            jf.pack();
-            jf.setLocationRelativeTo(null);
-            jf.setVisible(true);
-
-
+        ProductEntity entity;
+        try {
+            entity = ZhaoExcelUtil.processExcelData(filePath, width, diameter, screw, distribution, centre, pageNum, PAGE_SIZE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(frame,e.getMessage(),"错误",JOptionPane.ERROR_MESSAGE);
+            frame.dispose();
+            return;
         }
+        //获取详细数据
+        List<ProductDetail> productDetails = entity.getProductDetails();
+
+        DefaultTableModel tableModel = ((DefaultTableModel) table.getModel());
+        tableModel.setRowCount(0);
+        for (ProductDetail detail:productDetails) {
+            tableModel.addRow(new Object[]{
+                    detail.getRowNum(),
+                    detail.getBase(),
+                    detail.getProductName(),
+                    detail.getComponentNum(),
+                    detail.getWidth(),
+                    detail.getDiameter(),
+                    detail.getOffset(),
+                    detail.getCentre(),
+                    detail.getScrew(),
+                    detail.getDistribution(),
+                    detail.getSingleWheelLoad(),
+                    detail.getRiMaterial(),
+                    detail.getRimthickness(),
+                    detail.getSpokeMaterial(),
+                    detail.getSpokeThicknes(),
+                    detail.getBendingFatigueTest(),
+                    detail.getBendingTestResult(),
+                    detail.getRadialFatigueTest(),
+                    detail.getRadialTestResult(),
+                    detail.getSpokeMold(),
+                    detail.getRiMould(),
+                    detail.getPressingMold(),
+                    detail.getProductDigitalModel(),
+                    detail.getProductdrawings()
+            });
+        }
+        //设置页码
+        JLPageNum.setText(entity.getPageNum() + "/" + entity.getTotalPage());
     }
 }
