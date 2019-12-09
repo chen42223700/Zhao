@@ -58,7 +58,7 @@ public class ZhaoExcelUtil {
 
         double screwValue = -1;
         if (screwCondition){
-            screwValue = Double.parseDouble(diameter);
+            screwValue = Double.parseDouble(screw);
         }
         double distributionValue = -1;
         if (distributionCondition){
@@ -66,7 +66,7 @@ public class ZhaoExcelUtil {
         }
         double centreValue = -1;
         if (centreCondition){
-            centreValue = Double.parseDouble(diameter);
+            centreValue = Double.parseDouble(centre);
         }
         //总条数
         int total = 0;
